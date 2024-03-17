@@ -1,0 +1,23 @@
+spring:
+  config:
+      import: optional:file:dev.env[.properties]
+  output:
+        ansi:
+            enabled: always
+  rabbitmq:
+    listener:
+      simple:
+        default-requeue-rejected: false
+  mail:
+      host: smtp.yandex.ru
+      port: 465
+      username: ${AMQP_EMAIL_SENDER_LOGIN}
+      password: ${AMQP_EMAIL_SENDER_PASSWORD}
+      protocol: smtps
+      tls: true
+      auth: true
+      
+card-crud:
+  rabbitmq-email-queue: ${RABBITMQ_EMAIL_QUEUE}
+  rabbitmq-host: ${RABBITMQ_HOST}
+  rabbitmq-port: ${RABBITMQ_PORT}

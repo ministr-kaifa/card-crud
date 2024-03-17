@@ -1,0 +1,11 @@
+logging:
+  level:
+    org:
+      springframework:
+        orm:
+          jpa:
+            JpaTransactionManager: DEBUG
+spring:
+  jpa:
+    show-sql: true
+    hibernate.ddl-auto: create

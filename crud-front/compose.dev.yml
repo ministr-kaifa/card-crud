@@ -1,0 +1,12 @@
+services:
+  react-lab:
+    env_file: .dev.env
+    image: node
+    ports:
+      - 3000:3000
+    volumes:
+      - "./app:/app"
+    working_dir: /app
+    environment:
+      - WATCHPACK_POLLING=true
+    command: sh -c "cd /app && npm install && npm start"

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.2.3</version>
+    <relativePath />
+  </parent>
+
+  <groupId>ru.zubkoff.sber</groupId>
+  <artifactId>card-crud</artifactId>
+  <version>1.0.0</version>
+
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>event-manager</module>
+    <module>api</module>
+    <module>core</module>
+  </modules>
+
+  <name>card-crud</name>
+  <description>
+    Автоматическая рассылка уведомление клиентам банка о завершении срока действий их банковских карт.
+  </description>
+
+  <properties>
+    <java.version>20</java.version>
+  </properties>
+
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>ru.zubkoff.sber.cardcrud</groupId>
+        <artifactId>core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+</project>

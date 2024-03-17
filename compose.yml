@@ -1,0 +1,92 @@
+services:
+  postgres:
+    env_file:
+      - .env
+    container_name: postgres
+    image: postgres:16rc1
+    networks:
+      - back
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: on-failure
+
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3.13.0
+    environment:
+      log.console.level: warning
+    ports:
+      - 5672:5672
+      - 15672:15672
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    networks:
+      - back
+
+  crud-api:
+    env_file:
+      - .env
+    build: 
+      dockerfile: api.Dockerfile
+    depends_on: 
+      postgres:
+        condition: service_healthy
+    ports:
+      - 8080:8080
+    networks:
+      - back
+      - front
+
+  event-manager:
+    env_file:
+      - .env
+    build: 
+      dockerfile: event-manager.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - 8081:8081
+    networks:
+      - back
+      - front
+
+  crud-front:
+    env_file:
+      - .env
+    build: 
+      dockerfile: ./crud-front/Dockerfile
+    ports:
+      - 80:3000
+    depends_on:
+      - crud-api
+      - event-manager
+    networks:
+      - front
+
+  amqp-email-sender:
+    env_file:
+      - .env
+    build: amqp-email-sender
+    depends_on: 
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - back
+
+networks:
+  back:
+  front:
+  

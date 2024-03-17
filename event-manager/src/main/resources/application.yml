@@ -1,0 +1,29 @@
+server:
+  port: 8081
+
+spring:
+    config:
+        import: optional:file:dev.env[.properties]
+    output:
+        ansi:
+            enabled: always
+    jpa:
+        database: postgresql
+        hibernate:
+            ddl-auto: update
+
+        properties:
+            hibernate:
+                format_sql: true
+                use_sql_comments: true
+    datasource:
+        url: jdbc:postgresql://${POSTGRES_HOST}/${POSTGRES_DB}
+        username: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        driver-class-name: org.postgresql.Driver
+
+card-crud:
+  rabbitmq-email-queue: ${RABBITMQ_EMAIL_QUEUE}
+  rabbitmq-host: ${RABBITMQ_HOST}
+  rabbitmq-port: ${RABBITMQ_PORT}
+  card-expired-notification-email-sender: ${CARD_EXPIRED_NOTIFICATION_EMAIL_SENDER}
