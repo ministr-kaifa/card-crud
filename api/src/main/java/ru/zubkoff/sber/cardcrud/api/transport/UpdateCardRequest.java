@@ -10,27 +10,23 @@ import jakarta.validation.constraints.Pattern;
 import ru.zubkoff.sber.cardcrud.core.domain.Card;
 import ru.zubkoff.sber.cardcrud.core.domain.Client;
 
-public record UpdateCardDto(
-  @Min(0)
-  Long ownerId, 
+public record UpdateCardRequest(
+    @Min(0) Long ownerId,
 
-  @Pattern(regexp = "\\d{16}", message = "card number must be 16-digit number")
-  String cardNumber, 
+    @Pattern(regexp = "\\d{16}", message = "card number must be 16-digit number") String cardNumber,
 
-  @JsonFormat(pattern="yyyy-M-d")
-  LocalDate validFrom, 
+    @JsonFormat(pattern = "yyyy-M-d") LocalDate validFrom,
 
-  @JsonFormat(pattern="yyyy-M-d")
-  LocalDate validTo) {
-    
+    @JsonFormat(pattern = "yyyy-M-d") LocalDate validTo) {
+
   @AssertTrue(message = "valid from must be before valid to")
   public boolean isValidFromBeforeValidTo() {
     return (validFrom == null || validTo == null) || validFrom.isBefore(validTo);
   }
 
   public Card toEntity() {
-    var client = ownerId != null? new Client(ownerId, null, null, null, null) : null;
-    return new Card(0L, client, cardNumber, validFrom, validTo);
+    var client = ownerId != null ? new Client(ownerId, null, null, null, null) : null;
+    return new Card(null, client, cardNumber, validFrom, validTo);
   }
 
 }
