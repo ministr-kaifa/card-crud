@@ -21,7 +21,7 @@ const NewClientPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(apiHost + '/api/clients/add', {
+      const response = await fetch(apiHost + '/api/clients', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -32,7 +32,7 @@ const NewClientPage = () => {
         const fetchedNewClient = await response.json();
         setErrorMessage(null);
         navigate(`/clients/${fetchedNewClient.id}`)
-        setNewClient({ 
+        setNewClient({
           name: '',
           passportNumber: '',
           email: ''
@@ -86,3 +86,4 @@ const NewClientPage = () => {
 };
 
 export { NewClientPage as NewClientForm };
+

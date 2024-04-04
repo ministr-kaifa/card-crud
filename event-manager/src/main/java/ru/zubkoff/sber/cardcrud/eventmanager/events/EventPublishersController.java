@@ -1,25 +1,31 @@
 package ru.zubkoff.sber.cardcrud.eventmanager.events;
 
-import org.springframework.web.bind.annotation.RestController;
+import java.util.Map;
 
-import ru.zubkoff.sber.cardcrud.eventmanager.events.card.expired.CardExpiredEventPublisher;
-
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-@CrossOrigin(origins = {"*"})
+@CrossOrigin(origins = { "*" })
 public class EventPublishersController {
 
-  private final CardExpiredEventPublisher cardExpiredPublisher;
+  private final Map<String, EventGeneratorPublisher<?>> cardExpiredPublisher;
 
-  public EventPublishersController(CardExpiredEventPublisher cardExpiredPublisher) {
-    this.cardExpiredPublisher = cardExpiredPublisher;
+  public EventPublishersController(Map<String, EventGeneratorPublisher<?>> generatorPublishers) {
+    this.cardExpiredPublisher = generatorPublishers;
   }
 
-  @GetMapping("/api/events/card/expired/publish")
-  public void getMethodName() {
-    cardExpiredPublisher.publishAllExpiredCards();
+  @PostMapping("/api/events/generatorPublishers/{generatorPublisherName}/tasks")
+  public void getMethodName(@PathVariable String generatorPublisherName) {
+    var generatorPublisher = cardExpiredPublisher.get(generatorPublisherName);
+    if (generatorPublisher == null) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+    }
+    generatorPublisher.generateAndPublish();
   }
 
 }

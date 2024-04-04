@@ -22,14 +22,14 @@ public class CardExpiredEmailNotificationAmqpPublisher implements ApplicationLis
 
   private static final Path CARD_EXPIRED_EMAIL_TEMPLATE_PATH = Path.of("email/cardExpired");
   private static final Logger LOGGER = LoggerFactory.getLogger(CardExpiredEmailNotificationAmqpPublisher.class);
-  
+
   private final ApplicationProperties properties;
 
   private final TemplateEngine templateEngine;
-  private final ObjectMapper objectMapper = new ObjectMapper();
   private final AmqpTemplate amqpTemplate;
 
-  public CardExpiredEmailNotificationAmqpPublisher(AmqpTemplate amqpTemplate, TemplateEngine templateEngine, ApplicationProperties properties) {
+  public CardExpiredEmailNotificationAmqpPublisher(AmqpTemplate amqpTemplate, TemplateEngine templateEngine,
+      ApplicationProperties properties) {
     this.amqpTemplate = amqpTemplate;
     this.templateEngine = templateEngine;
     this.properties = properties;
@@ -39,30 +39,29 @@ public class CardExpiredEmailNotificationAmqpPublisher implements ApplicationLis
   public void onApplicationEvent(CardExpiredEvent event) {
     var templateContext = new Context();
     templateContext.setVariables(
-      Map.of(
-        "clientName", event.getClient().getName(),
-        "expiredCardNumber", event.getCard().getCardNumber()
-      )
-    );
+        Map.of(
+            "clientName", event.getClient().getName(),
+            "expiredCardNumber", event.getCard().getCardNumber()));
 
     var emailContent = templateEngine.process(
-      CARD_EXPIRED_EMAIL_TEMPLATE_PATH.toString(), 
-      templateContext
-    );
+        CARD_EXPIRED_EMAIL_TEMPLATE_PATH.toString(),
+        templateContext);
 
-    Email email = new Email(
-      emailContent,
-      properties.getCardExpiredNotificationEmailSender(),
-      event.getClient().getEmail());
+    var email = new Email(
+        emailContent,
+        properties.getCardExpiredNotificationEmailSender(),
+        event.getClient().getEmail());
 
     try {
+      ObjectMapper objectMapper = new ObjectMapper();
       amqpTemplate.convertAndSend(
-        properties.getRabbitmqEmailQueue(), 
-        objectMapper.writeValueAsString(email));
+          properties.getRabbitmqEmailQueue(),
+          objectMapper.writeValueAsString(email));
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
-    LOGGER.info("expired email notification sent: client: " + event.getClient().getId() + "; card: " + event.getCard().getId() + ";");
+    LOGGER.info("expired email notification sent: client: %d; card: %d;".formatted(event.getClient().getId(),
+        event.getCard().getId()));
   }
-  
+
 }
