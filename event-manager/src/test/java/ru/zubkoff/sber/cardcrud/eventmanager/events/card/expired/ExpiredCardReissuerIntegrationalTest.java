@@ -1,11 +1,8 @@
 package ru.zubkoff.sber.cardcrud.eventmanager.events.card.expired;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -22,29 +19,30 @@ import ru.zubkoff.sber.cardcrud.core.domain.Client;
 import ru.zubkoff.sber.cardcrud.core.services.CardService;
 
 @SpringBootTest(classes = {
-  CardService.class,
-  CardExpiredEventPublisher.class,
-  ExpiredCardReissuer.class})
+    CardService.class,
+    CardExpiredEventGeneratorPublisher.class,
+    CardExpiredReissuer.class })
 class ExpiredCardReissuerIntegrationalTest {
 
   @MockBean
   CardService service;
 
   @Autowired
-  CardExpiredEventPublisher publisher;
+  CardExpiredEventGeneratorPublisher publisher;
 
   @Autowired
-  ExpiredCardReissuer reissuer;
+  CardExpiredReissuer reissuer;
 
   @Test
   void givenExpiredCards_whenHandleExpiredCardsAsEvent_thenAllCardsWasReissued() {
     // given
-    var expiredCards = List.of(new Card(1L, null, null, null, null), new Card(2L, null, null, null, null), new Card(3L, null, null, null, null));
+    var expiredCards = List.of(new Card(1L, null, null, null, null), new Card(2L, null, null, null, null),
+        new Card(3L, null, null, null, null));
     expiredCards.forEach(card -> card.setOwner(new Client(1L, null, null, null, null)));
     given(service.findCardsByValidToLessThanEqual(any())).willReturn(expiredCards);
 
     // when
-    publisher.publishAllExpiredCards();
+    publisher.generateAndPublish();
 
     // then
     ArgumentCaptor<Card> captor = ArgumentCaptor.forClass(Card.class);
