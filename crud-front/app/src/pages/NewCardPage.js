@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const NewCardPage = () => {
   const location = useLocation();
@@ -15,7 +15,7 @@ const NewCardPage = () => {
     validFrom: null,
     validTo: null
   });
-  
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setNewCard(prevCard => ({
@@ -34,7 +34,7 @@ const NewCardPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(apiHost + '/api/cards/add', {
+      const response = await fetch(apiHost + '/api/cards', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -45,7 +45,7 @@ const NewCardPage = () => {
         setErrorMessage(null);
         const fetchedNewCard = await response.json();
         navigate(`/cards/${fetchedNewCard.id}`);
-        setNewCard({ 
+        setNewCard({
           ownerId: ownerId,
           cardNumber: '',
           validFrom: null,
@@ -53,7 +53,7 @@ const NewCardPage = () => {
         });
       } else {
         const fetchedErrorResponse = await response.json();
-        if(fetchedErrorResponse.info === "non unique value") {
+        if (fetchedErrorResponse.info === "non unique value") {
           setErrorMessage(fetchedErrorResponse.details);
         } else if (fetchedErrorResponse.info === "entity not found") {
           setErrorMessage(fetchedErrorResponse.details);
@@ -100,3 +100,4 @@ const NewCardPage = () => {
 };
 
 export { NewCardPage as NewCardForm };
+

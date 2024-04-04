@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const CardPage = () => {
   const { id } = useParams();
@@ -15,7 +15,7 @@ const CardPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(apiHost + `/api/cards/${id}`);
+        const response = await fetch(apiHost + `/api/cards/${id}`)
         const fetchedCard = await response.json();
         setCard(fetchedCard);
         setEditedCard({ ...fetchedCard });
@@ -59,7 +59,7 @@ const CardPage = () => {
         setCard(editedCard);
       } else {
         const fetchedErrorResponse = await response.json();
-        if(fetchedErrorResponse.info === "non unique value") {
+        if (fetchedErrorResponse.info === "non unique value") {
           setErrorMessage(fetchedErrorResponse.details);
         } else if (fetchedErrorResponse.info === "entity not found") {
           setErrorMessage(fetchedErrorResponse.details);
@@ -116,3 +116,4 @@ const CardPage = () => {
 };
 
 export { CardPage };
+
