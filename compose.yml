@@ -3,7 +3,7 @@ services:
     env_file:
       - .env
     container_name: postgres
-    image: postgres:16rc1
+    image: postgres:16
     networks:
       - back
     volumes:
@@ -11,7 +11,11 @@ services:
     ports:
       - 5432:5432
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+        ]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -22,6 +26,7 @@ services:
     image: rabbitmq:3.13.0
     environment:
       log.console.level: warning
+      log.console: true
     ports:
       - 5672:5672
       - 15672:15672
@@ -36,21 +41,20 @@ services:
   crud-api:
     env_file:
       - .env
-    build: 
+    build:
       dockerfile: api.Dockerfile
-    depends_on: 
+    depends_on:
       postgres:
         condition: service_healthy
     ports:
       - 8080:8080
     networks:
       - back
-      - front
 
   event-manager:
     env_file:
       - .env
-    build: 
+    build:
       dockerfile: event-manager.Dockerfile
     depends_on:
       postgres:
@@ -61,26 +65,23 @@ services:
       - 8081:8081
     networks:
       - back
-      - front
 
   crud-front:
     env_file:
       - .env
-    build: 
+    build:
       dockerfile: ./crud-front/Dockerfile
     ports:
       - 80:3000
     depends_on:
       - crud-api
       - event-manager
-    networks:
-      - front
 
   amqp-email-sender:
     env_file:
       - .env
     build: amqp-email-sender
-    depends_on: 
+    depends_on:
       rabbitmq:
         condition: service_healthy
     networks:
@@ -88,5 +89,3 @@ services:
 
 networks:
   back:
-  front:
-  
