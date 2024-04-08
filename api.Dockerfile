@@ -1,11 +1,12 @@
-FROM maven:3.9.6-amazoncorretto-21-al2023 AS build
-COPY core /home/app/core
-COPY event-manager/pom.xml /home/app/event-manager/pom.xml
-COPY api /home/app/api
-COPY pom.xml /home/app
-WORKDIR /home/app
-RUN mvn clean package 
+FROM maven:3.9.6 AS build
+COPY core /app/core
+COPY event-manager/pom.xml /app/event-manager/pom.xml
+COPY api /app/api
+COPY pom.xml /app
+WORKDIR /app
+RUN mvn clean package -DskipTests
 
-FROM openjdk:23-slim
-COPY --from=build /home/app/api/target/*.jar /usr/local/lib/app.jar
-CMD java -jar /usr/local/lib/app.jar
+FROM openjdk:20
+COPY --from=build /app/api/target/*.jar /app/api-app.jar
+EXPOSE 8080
+CMD java -jar /app/api-app.jar

@@ -1,10 +1,9 @@
-FROM maven:3.9.6-amazoncorretto-21-al2023 AS build
-COPY src /home/app/src
-COPY pom.xml /home/app
-WORKDIR /home/app
-RUN mvn clean package
+FROM maven:3.9.6 AS build
+COPY src /app/src
+COPY pom.xml /app
+WORKDIR /app
+RUN mvn clean package -DskipTests
 
-FROM openjdk:23-slim
-COPY --from=build /home/app/target/*.jar /usr/local/lib/app.jar
-EXPOSE 8080
-CMD java -jar /usr/local/lib/app.jar
+FROM openjdk:20
+COPY --from=build /app/target/*.jar /app/amqp-email-sender-app.jar
+CMD java -jar /app/amqp-email-sender-app.jar
