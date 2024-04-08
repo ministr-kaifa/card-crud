@@ -50,7 +50,7 @@ public class CardExpiredEmailNotificationAmqpPublisher implements ApplicationLis
     var email = new Email(
         emailContent,
         properties.getCardExpiredNotificationEmailSender(),
-        event.getClient().getEmail());
+        event.getClient().getEmail().value());
 
     try {
       ObjectMapper objectMapper = new ObjectMapper();

@@ -19,7 +19,7 @@
 
   <modules>
     <module>event-manager</module>
-    <module>api</module>
+    <module>crud-api</module>
     <module>core</module>
   </modules>
 
