@@ -1,14 +1,17 @@
 package ru.zubkoff.sber.cardcrud.core.persistence;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-
-import ru.zubkoff.sber.cardcrud.core.domain.Card;
-
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.time.LocalDate;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+import ru.zubkoff.sber.cardcrud.core.domain.card.Card;
 
 public interface CardRepository extends JpaRepository<Card, Long>, CustomizedCardRepository {
-  List<Card> findByValidToLessThanEqual(LocalDate validTo);
+  @Query("select c from Card c where c.serviceLife.validTo < :validTo")
+  List<Card> findByCardCardServiceLifeValidToLessThanEqual(LocalDate validTo);
+
   Optional<Card> findTopByOrderByCardNumberDesc();
 }

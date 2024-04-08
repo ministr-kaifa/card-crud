@@ -1,48 +1,58 @@
 package ru.zubkoff.sber.cardcrud.core.services;
 
 import java.time.LocalDate;
-import java.time.Period;
 import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import ru.zubkoff.sber.cardcrud.core.domain.Card;
-import ru.zubkoff.sber.cardcrud.core.exceptions.EntityNotFoundException;
+import jakarta.persistence.EntityNotFoundException;
+import ru.zubkoff.sber.cardcrud.core.domain.card.Card;
+import ru.zubkoff.sber.cardcrud.core.domain.card.CardCreation;
+import ru.zubkoff.sber.cardcrud.core.domain.card.CardNumber;
+import ru.zubkoff.sber.cardcrud.core.domain.card.CardUpdate;
 import ru.zubkoff.sber.cardcrud.core.persistence.CardRepository;
+import ru.zubkoff.sber.cardcrud.core.persistence.ClientRepository;
 
 @Service
 public class CardService {
 
-  private static final Period CARD_VALIDITY_PERIOD = Period.ofYears(5);  
-
   private final CardRepository cardRepository;
+  private final ClientRepository clientRepository;
 
-  public CardService(CardRepository cardRepository) {
+  public CardService(CardRepository cardRepository, ClientRepository clientRepository) {
     this.cardRepository = cardRepository;
+    this.clientRepository = clientRepository;
   }
 
   @Transactional
-  public void createCard(Card card, long ownerClientId) {
-    cardRepository.createCard(card, ownerClientId);
+  public Card createCard(CardCreation newCard, long ownerId) {
+    var client = clientRepository.findById(ownerId).orElseThrow(
+        () -> {
+          throw new EntityNotFoundException("No client with id = " + ownerId);
+        });
+    newCard.fetchOwner(client);
+    return cardRepository.save(newCard.toEntity());
   }
 
   public List<Card> findAllCards(int page, int pageSize) {
     return cardRepository.findAll(PageRequest.of(page, pageSize)).toList();
   }
 
-  public Card findCardById(Long cardId) {
+  public Card findCardById(long cardId) {
     return cardRepository.findById(cardId).orElseThrow(
-      () -> {throw new EntityNotFoundException("No card with id = " + cardId);});
+        () -> {
+          throw new EntityNotFoundException("No card with id = " + cardId);
+        });
   }
 
-  public void deleteCard(Long cardId) {
+  public void deleteCard(long cardId) {
     cardRepository.deleteById(cardId);
   }
 
   public List<Card> findCardsByValidToLessThanEqual(LocalDate validTo) {
-    return cardRepository.findByValidToLessThanEqual(validTo);
+    return cardRepository.findByCardCardServiceLifeValidToLessThanEqual(validTo);
   }
 
   /**
@@ -51,39 +61,31 @@ public class CardService {
    */
   @Transactional
   public Card reissueCard(Card oldCard) {
-    var cardWithBiggestCardNumber = cardRepository.findTopByOrderByCardNumberDesc().orElseThrow(() -> {
+    var biggestCardNumber = cardRepository.findTopByOrderByCardNumberDesc().orElseThrow(() -> {
       throw new EntityNotFoundException("Cant find any persisted card");
-    });
-    var newCard = new Card();
-    newCard.setCardNumber(String.valueOf(Long.parseLong(cardWithBiggestCardNumber.getCardNumber()) + 1));
-    newCard.setValidFrom(LocalDate.now());
-    newCard.setValidTo(LocalDate.now().plus(CARD_VALIDITY_PERIOD));
-    cardRepository.createCard(newCard, oldCard.getOwner().getId());
+    }).getCardNumber().value();
+    var newCard = oldCard.reissued(
+        new CardNumber("%016d".formatted(Long.parseLong(biggestCardNumber) + 1)),
+        LocalDate.now());
+    cardRepository.save(newCard);
     cardRepository.delete(oldCard);
     return newCard;
   }
 
   @Transactional
-  public Card mergeById(Long mergeToCardId, Card mergeFrom) {
-    var mergeTo = cardRepository.findById(mergeToCardId).orElseThrow(
-      () -> {throw new EntityNotFoundException("No card with id = " + mergeToCardId);});
-    merge(mergeFrom, mergeTo);
-    return mergeTo;
+  public Card updateById(long cardId, CardUpdate update) {
+    var card = cardRepository.findById(cardId).orElseThrow(
+        () -> {
+          throw new EntityNotFoundException("No card with id = " + cardId);
+        });
+    update.getNewOwnerId()
+        .ifPresent(ownerId -> update.fetchOwner(
+            clientRepository.findById(ownerId).orElseThrow(
+                () -> {
+                  throw new EntityNotFoundException("No client with id = " + ownerId);
+                })));
+    update.apply(card);
+    return card;
   }
 
-  private void merge(Card from, Card to) {
-    if(from.getCardNumber() != null) {
-      to.setCardNumber(from.getCardNumber());
-    }
-    if(from.getOwner() != null) {
-      to.setOwner(from.getOwner());
-    }
-    if(from.getValidFrom() != null) {
-      to.setValidFrom(from.getValidFrom());
-    }
-    if(from.getValidTo() != null) {
-      to.setValidTo(from.getValidTo());
-    }
-  }
-  
 }
