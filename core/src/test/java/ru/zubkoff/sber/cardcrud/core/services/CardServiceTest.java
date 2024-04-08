@@ -1,9 +1,11 @@
 package ru.zubkoff.sber.cardcrud.core.services;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.LongStream;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -18,20 +20,29 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import ru.zubkoff.sber.cardcrud.core.domain.Card;
-import ru.zubkoff.sber.cardcrud.core.domain.Client;
-import ru.zubkoff.sber.cardcrud.core.exceptions.EntityNotFoundException;
+import jakarta.persistence.EntityNotFoundException;
+import ru.zubkoff.sber.cardcrud.core.domain.card.CardCreation;
+import ru.zubkoff.sber.cardcrud.core.domain.card.CardNumber;
+import ru.zubkoff.sber.cardcrud.core.domain.card.CardServiceLife;
+import ru.zubkoff.sber.cardcrud.core.domain.card.CardUpdate;
+import ru.zubkoff.sber.cardcrud.core.domain.client.ClientCreation;
+import ru.zubkoff.sber.cardcrud.core.domain.client.EmailAddress;
+import ru.zubkoff.sber.cardcrud.core.domain.client.Name;
+import ru.zubkoff.sber.cardcrud.core.domain.client.PassportNumber;
 import ru.zubkoff.sber.cardcrud.core.persistence.ClientRepository;
 
 @Testcontainers
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Transactional(propagation = Propagation.NOT_SUPPORTED)
 @SpringBootTest
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class CardServiceTest {
 
   @Container
   @ServiceConnection
   static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16");
+
+  private final CardServiceLife validServiceLife = new CardServiceLife(LocalDate.of(2000, 1, 1),
+      LocalDate.of(3000, 1, 1));
 
   @Autowired
   CardService cardService;
@@ -47,87 +58,143 @@ class CardServiceTest {
     clientRepository.deleteAll();
   }
 
-  List<String> cardNumberRange(long length) {
+  List<CardNumber> cardNumberRange(long length) {
     return LongStream.range(0, length)
-      .mapToObj(number -> String.format("%016d", number))
-      .toList();
+        .mapToObj(number -> new CardNumber(String.format("%016d", number)))
+        .toList();
   }
 
   @Test
   void givenCardsToReissue_whenReissue_thenUnableToFindOldCards() {
-    //given
-    var client = new Client(null, "4444666666", "Иванов Иван Иванович", "email@email.com", null);
-    var reissuedCards = cardNumberRange(100).stream()
-      .map(cardNumber -> new Card(null, client, cardNumber, LocalDate.of(2000, 1, 1), LocalDate.of(3000, 1, 1)))
-      .toList();
-    client.setCards(reissuedCards);
-    clientService.createClient(client);
+    // given
+    var clientCreation = new ClientCreation(
+        new PassportNumber("4444666666"),
+        new Name("Иванов Иван Иванович"),
+        new EmailAddress("email@email.com"),
+        cardNumberRange(100).stream()
+            .map(cardNumber -> new CardCreation(cardNumber, validServiceLife))
+            .toList());
+    var client = clientService.createClient(clientCreation);// now client object is detached
 
-    //when
-    reissuedCards.forEach(card -> cardService.reissueCard(card));
+    // when
+    client.getCards().forEach(card -> cardService.reissueCard(card));
 
-    //then
-    reissuedCards.forEach(card -> assertThrows(EntityNotFoundException.class,() -> cardService.findCardById(card.getId())));
+    // then
+    client.getCards()
+        .forEach(card -> assertThrows(EntityNotFoundException.class, () -> cardService.findCardById(card.getId())));
   }
 
   @Test
   void givenCardsToReissue_whenReissue_thenOwnerCardAmountSame() {
-    //given
-    var client = new Client(null, "4444666666", "Иванов Иван Иванович", "email@email.com", null);
-    var reissuedCards = cardNumberRange(100).stream()
-      .map(cardNumber -> new Card(null, client, cardNumber, LocalDate.of(2000, 1, 1), LocalDate.of(3000, 1, 1)))
-      .toList();
-    client.setCards(reissuedCards);
-    clientService.createClient(client);
+    // given
+    var clientCreation = new ClientCreation(
+        new PassportNumber("4444666666"),
+        new Name("Иванов Иван Иванович"),
+        new EmailAddress("email@email.com"),
+        cardNumberRange(100).stream()
+            .map(cardNumber -> new CardCreation(cardNumber, validServiceLife))
+            .toList());
 
-    //when
-    reissuedCards.forEach(card -> cardService.reissueCard(card));
+    var client = clientService.createClient(clientCreation);
+    var cardAmountBeforeReissue = client.getCards().size();
 
-    //then
-    assertEquals(reissuedCards.size(), clientService.findClientWithCardsById(client.getId()).getCards().size());
+    // when
+    client.getCards().forEach(card -> cardService.reissueCard(card));
+    var cardAmountAfterReissue = clientService.findClientWithCardsById(client.getId()).getCards().size();
+
+    // then
+    assertEquals(cardAmountBeforeReissue, cardAmountAfterReissue);
   }
 
   @Test
-  void givenCardToMerge_whenMerge_thenAllNonNullMergeClientFieldPersisted() {
-    //given
-    var oldOwner = new Client(null, "1111111111", "Иванов Иван Иванович", "email@email.com", List.of());
-    var newOwner = new Client(null, "2222222222", "Петров Петр Петрович", "abcd@abcd.abcd", List.of());
-    var mergeFrom = new Card(null, newOwner, cardNumberRange(1).get(0), LocalDate.of(2000, 1, 1), LocalDate.of(3000, 1, 1));
-    var mergeTo = new Card(null, oldOwner, cardNumberRange(2).get(1), LocalDate.of(5000, 1, 1), LocalDate.of(6000, 1, 1));
-    clientService.createClient(oldOwner);
-    clientService.createClient(newOwner);
+  void givenCardToUpdate_whenUpdatingCard_thenOnlyUpdatingFieldsUpdated() {
+    // given
+    var clientCreation = new ClientCreation(
+        new PassportNumber("6666444444"),
+        new Name("Иванов Иван Иванович"),
+        new EmailAddress("email@email.com"));
+    var oldCardNumber = new CardNumber("1111222233334444");
+    var cardCreation = new CardCreation(oldCardNumber, validServiceLife);
+    var owner = clientService.createClient(clientCreation);
+    var cardBeforeUpdate = cardService.createCard(cardCreation, owner.getId());
 
-    //when
-    cardService.createCard(mergeTo, oldOwner.getId());
-    cardService.mergeById(mergeTo.getId(), mergeFrom);
-    var mergedCard = cardService.findCardById(mergeTo.getId());
+    var newCardNumber = new CardNumber("1111111111111111");
+    var cardUpdate = new CardUpdate(
+        Optional.empty(),
+        Optional.of(newCardNumber),
+        Optional.empty(),
+        Optional.empty());
 
-    //then
-    assertEquals(mergeFrom.getCardNumber(), mergedCard.getCardNumber());
-    assertEquals(mergeFrom.getOwner().getId(), mergedCard.getOwner().getId());
-    assertEquals(mergeFrom.getValidFrom(), mergedCard.getValidFrom());
-    assertEquals(mergeFrom.getValidTo(), mergedCard.getValidTo());
+    // when
+    var cardAfterUpdate = cardService.updateById(cardBeforeUpdate.getId(), cardUpdate);
+
+    // then
+    assertEquals(oldCardNumber, cardBeforeUpdate.getCardNumber());
+    assertEquals(newCardNumber, cardAfterUpdate.getCardNumber());
+    assertEquals(cardBeforeUpdate.getId(), cardAfterUpdate.getId());
+    assertEquals(cardBeforeUpdate.getServiceLife(), cardBeforeUpdate.getServiceLife());
+    assertEquals(cardBeforeUpdate.getOwner(), cardAfterUpdate.getOwner());
   }
 
   @Test
-  void givenEmptyCardToMerge_whenMerge_thenNoChanges() {
-    //given
-    var owner = new Client(null, "1111111111", "Иванов Иван Иванович", "email@email.com", List.of());
-    var mergeFrom = new Card(null, null, null, null, null);
-    var mergeTo = new Card(null, owner, cardNumberRange(1).get(0), LocalDate.of(5000, 1, 1), LocalDate.of(6000, 1, 1));
-    clientService.createClient(owner);
+  void giveCardToUpdate_whenEmptyUpdate_thenNoChanges() {
+    // given
+    var clientCreation = new ClientCreation(
+        new PassportNumber("6666444444"),
+        new Name("Иванов Иван Иванович"),
+        new EmailAddress("email@email.com"));
+    var cardCreation = new CardCreation(new CardNumber("1111222233334444"), validServiceLife);
+    var owner = clientService.createClient(clientCreation);
+    var cardBeforeUpdate = cardService.createCard(cardCreation, owner.getId());
 
-    //when
-    cardService.createCard(mergeTo, owner.getId());
-    cardService.mergeById(mergeTo.getId(), mergeFrom);
-    var mergedCard = cardService.findCardById(mergeTo.getId());
+    var cardUpdate = new CardUpdate(
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty());
 
-    //then
-    assertEquals(mergeTo.getCardNumber(), mergedCard.getCardNumber());
-    assertEquals(mergeTo.getOwner().getId(), mergedCard.getOwner().getId());
-    assertEquals(mergeTo.getValidFrom(), mergedCard.getValidFrom());
-    assertEquals(mergeTo.getValidTo(), mergedCard.getValidTo());
+    // when
+    var cardAfterUpdate = cardService.updateById(cardBeforeUpdate.getId(), cardUpdate);
 
+    // then
+    assertEquals(cardBeforeUpdate.getId(), cardAfterUpdate.getId());
+    assertEquals(cardBeforeUpdate.getCardNumber(), cardAfterUpdate.getCardNumber());
+    assertEquals(cardBeforeUpdate.getServiceLife(), cardBeforeUpdate.getServiceLife());
+    assertEquals(cardBeforeUpdate.getOwner(), cardAfterUpdate.getOwner());
   }
-  
+
+  @Test
+  void givenCard_whenUpdateOwner_thenNewOwnerOfCard() {
+    // given
+    var oldOwnerCreation = new ClientCreation(
+        new PassportNumber("6666444444"),
+        new Name("Иванов Иван Иванович"),
+        new EmailAddress("email@email.com"),
+        List.of(new CardCreation(new CardNumber("1111222233334444"), validServiceLife)));
+    var oldOwner = clientService.createClient(oldOwnerCreation);
+    var cardBeforeUpdate = oldOwner.getCards().get(0);
+
+    var newOwnerCreation = new ClientCreation(
+        new PassportNumber("4444666666"),
+        new Name("Иванов Иван Иванович"),
+        new EmailAddress("email@mail.com"));
+    var newOwner = clientService.createClient(newOwnerCreation);
+
+    var cardUpdate = new CardUpdate(
+        Optional.of(newOwner.getId()),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty());
+
+    // when
+    var cardAfterUpdate = cardService.updateById(cardBeforeUpdate.getId(), cardUpdate);
+
+    // then
+    assertEquals(oldOwner, cardBeforeUpdate.getOwner());
+    assertEquals(newOwner, cardAfterUpdate.getOwner());
+    assertEquals(cardBeforeUpdate.getId(), cardAfterUpdate.getId());
+    assertEquals(cardBeforeUpdate.getCardNumber(), cardAfterUpdate.getCardNumber());
+    assertEquals(cardBeforeUpdate.getServiceLife(), cardBeforeUpdate.getServiceLife());
+  }
+
 }
