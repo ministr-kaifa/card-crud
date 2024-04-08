@@ -76,7 +76,7 @@ class ClientServiceTest {
         Optional.empty());
 
     // when
-    clientService.updateClient(clientBeforeUpdate.getId(), clientUpdate);
+    clientService.updateById(clientBeforeUpdate.getId(), clientUpdate);
     var clientAfterUpdate = clientService.findClientWithCardsById(clientBeforeUpdate.getId());
 
     // then
@@ -105,7 +105,7 @@ class ClientServiceTest {
         Optional.empty());
 
     // when
-    clientService.updateClient(clientBeforeUpdate.getId(), clientUpdate);
+    clientService.updateById(clientBeforeUpdate.getId(), clientUpdate);
     var clientAfterUpdate = clientService.findClientWithCardsById(clientBeforeUpdate.getId());
 
     // then

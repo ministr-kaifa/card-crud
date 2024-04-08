@@ -2,8 +2,8 @@ package ru.zubkoff.sber.cardcrud.eventmanager.events.card.expired;
 
 import org.springframework.context.ApplicationEvent;
 
-import ru.zubkoff.sber.cardcrud.core.domain.Card;
-import ru.zubkoff.sber.cardcrud.core.domain.Client;
+import ru.zubkoff.sber.cardcrud.core.domain.card.Card;
+import ru.zubkoff.sber.cardcrud.core.domain.client.Client;
 
 public class CardExpiredEvent extends ApplicationEvent {
   private final Client client;
@@ -14,11 +14,11 @@ public class CardExpiredEvent extends ApplicationEvent {
     this.client = client;
     this.card = card;
   }
-  
+
   public Card getCard() {
     return card;
   }
-  
+
   public Client getClient() {
     return client;
   }

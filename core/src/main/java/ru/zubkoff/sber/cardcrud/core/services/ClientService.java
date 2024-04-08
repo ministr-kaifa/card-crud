@@ -52,7 +52,7 @@ public class ClientService {
   }
 
   @Transactional
-  public Client updateClient(long clientId, ClientUpdate update) {
+  public Client updateById(long clientId, ClientUpdate update) {
     var client = clientRepository.findById(clientId).orElseThrow(
         () -> {
           throw new EntityNotFoundException("No client with id = " + clientId);
