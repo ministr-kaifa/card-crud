@@ -15,12 +15,17 @@ public class CustomizedCardRepositoryImpl implements CustomizedCardRepository {
   private EntityManager entityManager;
 
   @Override
-  public void createCard(Card card, Long ownerClientId) {
+  public Card createCard(Card card, Long ownerClientId) {
     Client owner = entityManager.find(Client.class, ownerClientId);
     if (owner == null) {
       throw new EntityNotFoundException("Cant crate card: no client with such id");
     }
     card.setOwner(owner);
+    return createCard(card);
+  }
+
+  @Override
+  public Card createCard(Card card) {
     try {
       entityManager.persist(card);
     } catch (ConstraintViolationException e) {
@@ -28,6 +33,7 @@ public class CustomizedCardRepositoryImpl implements CustomizedCardRepository {
         throw new NonUniqueValueException("Already have card with such card number", e);
       }
     }
+    return card;
   }
 
 }

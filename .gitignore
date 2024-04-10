@@ -36,3 +36,4 @@ build/
 target
 postgres-data
 node_modules
+dev.env

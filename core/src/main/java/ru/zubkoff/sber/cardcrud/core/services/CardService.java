@@ -33,7 +33,7 @@ public class CardService {
           throw new EntityNotFoundException("No client with id = " + ownerId);
         });
     newCard.fetchOwner(client);
-    return cardRepository.save(newCard.toEntity());
+    return cardRepository.createCard(newCard.toEntity());
   }
 
   public List<Card> findAllCards(int page, int pageSize) {
