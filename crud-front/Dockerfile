@@ -1,5 +1,7 @@
 FROM node:20
-COPY /crud-front/app /home/app
-WORKDIR /home/app
+WORKDIR /app
+COPY /crud-front/app/package.json .
+COPY /crud-front/app/package-lock.json .
 RUN npm install
+COPY /crud-front/app .
 CMD npm start
