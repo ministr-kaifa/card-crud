@@ -1,7 +1,7 @@
 FROM maven:3.9.6 AS build
 COPY event-manager /app/event-manager
 COPY core /app/core
-COPY api/pom.xml /app/api/pom.xml
+COPY crud-api/pom.xml /app/crud-api/pom.xml
 COPY pom.xml /app
 WORKDIR /app
 RUN mvn clean package -DskipTests
